@@ -1,0 +1,9 @@
+sentence_transformers
+scikit-learn
+numpy
+nest_asyncio
+uvicorn
+torch
+transformers
+pydantic
+fastapi
