@@ -6,7 +6,7 @@ import requests  # To send requests to the API
 import json
 
 # Ngrok URL (Hardcoded)
-NGROK_URL = "http://63db-35-197-20-109.ngrok-free.app"  # Replace with your actual Ngrok URL
+NGROK_URL = "http://e607-35-197-20-109.ngrok-free.app"  # Replace with your actual Ngrok URL
 
 
 # Function to check GPU processes

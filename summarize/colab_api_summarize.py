@@ -15,6 +15,25 @@ model = None
 tokenizer = None
 device = None
 
+# VRAM usage threshold in bytes (set to 90% of the total VRAM)
+VRAM_THRESHOLD = 0.9
+
+
+# Function to monitor VRAM and switch to CPU if needed
+def check_vram_and_switch_to_cpu():
+    if torch.cuda.is_available():
+        total_vram = torch.cuda.get_device_properties(0).total_memory
+        reserved_vram = torch.cuda.memory_reserved(0)
+        vram_usage = reserved_vram / total_vram
+
+        if vram_usage > VRAM_THRESHOLD:
+            print("VRAM usage is high. Switching to CPU.")
+            return "cpu"
+        else:
+            return "cuda"
+    else:
+        return "cpu"
+
 
 # Function to load the model and tokenizer
 def load_model():
@@ -34,7 +53,9 @@ def load_model():
         return tokenizer, device
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # Check VRAM usage and switch to CPU if necessary
+    device = check_vram_and_switch_to_cpu()
+
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
@@ -96,9 +117,11 @@ async def summarize(request: Request):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-# Function to release GPU memory and clean up resources
+# Set environment variable to handle memory fragmentation
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
+
 def cleanup():
-    """Release GPU memory and clean up resources."""
     global model, model_loaded
     if not model_loaded:
         print("Model not loaded, skipping cleanup.")
@@ -106,41 +129,80 @@ def cleanup():
 
     print("Cleaning up model and freeing GPU memory...")
     del model
-    torch.cuda.empty_cache()
-    gc.collect()
+    torch.cuda.empty_cache()  # Free GPU memory
+    gc.collect()  # Invoke Python's garbage collector
     model_loaded = False
 
 
-# Function to summarize text (add your custom summarization logic here)
+# Mixed precision inference with autocast
 def summarize_text(text, min_length, max_length):
-    """Summarizes the given text using the loaded model."""
     input_text = f"لطفا این متن را به صورت خلاصه و به زبان فارسی بنویسید: {text}"
     inputs = tokenizer.encode(input_text, return_tensors="pt").to(device)
     attention_mask = (inputs != tokenizer.pad_token_id).to(device)
 
     with torch.no_grad():
-        outputs = model.generate(
-            inputs,
-            max_new_tokens=max_length + 50,
-            min_length=min_length,
-            repetition_penalty=1.3,
-            no_repeat_ngram_size=2,
-            temperature=0.5,
-            do_sample=False,
-            num_beams=5,
-            attention_mask=attention_mask,
-            early_stopping=True
-        )
+        with torch.cuda.amp.autocast():  # Use mixed precision
+            outputs = model.generate(
+                inputs,
+                max_new_tokens=max_length + 50,
+                min_length=min_length,
+                repetition_penalty=1.3,
+                no_repeat_ngram_size=2,
+                temperature=0.5,
+                do_sample=False,
+                num_beams=5,
+                attention_mask=attention_mask,
+                early_stopping=True
+            )
 
     summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return summary.replace(input_text, "").strip()
 
+
+# # Function to release GPU memory and clean up resources
+# def cleanup():
+#     """Release GPU memory and clean up resources."""
+#     global model, model_loaded
+#     if not model_loaded:
+#         print("Model not loaded, skipping cleanup.")
+#         return
+
+#     print("Cleaning up model and freeing GPU memory...")
+#     del model
+#     torch.cuda.empty_cache()
+#     gc.collect()
+#     model_loaded = False
+
+# # Function to summarize text (add your custom summarization logic here)
+# def summarize_text(text, min_length, max_length):
+#     """Summarizes the given text using the loaded model."""
+#     input_text = f"لطفا این متن را به صورت خلاصه و به زبان فارسی بنویسید: {text}"
+#     inputs = tokenizer.encode(input_text, return_tensors="pt").to(device)
+#     attention_mask = (inputs != tokenizer.pad_token_id).to(device)
+
+#     with torch.no_grad():
+#         outputs = model.generate(
+#             inputs,
+#             max_new_tokens=max_length + 50,
+#             min_length=min_length,
+#             repetition_penalty=1.3,
+#             no_repeat_ngram_size=2,
+#             temperature=0.5,
+#             do_sample=False,
+#             num_beams=5,
+#             attention_mask=attention_mask,
+#             early_stopping=True
+#         )
+
+#     summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
+#     return summary.replace(input_text, "").strip()
 
 import nest_asyncio
 import uvicorn
 
 # Apply nest_asyncio to handle the running event loop
 nest_asyncio.apply()
+
 # Start Ngrok tunnel and server
 if __name__ == "__main__":
     # Start Ngrok tunnel with HTTP only (no TLS)
