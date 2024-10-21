@@ -99,7 +99,7 @@ async def summarize(request: Request):
         data = await request.json()
         text = data.get("text")
         prompt = data.get("prompt", "لطفا این متن را به صورت خلاصه و به زبان فارسی بنویسید: ")
-        min_length = data.get("min_length", 100)
+        min_length = data.get("min_length", 200)
         max_length = data.get("max_length", 300)
 
         if not text:
