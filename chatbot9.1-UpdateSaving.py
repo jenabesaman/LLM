@@ -52,9 +52,9 @@ HuggingFaceLocalChatGenerator = HuggingFaceLocalChatGenerator(
     model=local_model_path,
     task="text2text-generation",
     generation_kwargs={
-        "max_new_tokens": 150,
+        "max_new_tokens": 300,
         "do_sample": True,
-        "temperature": 0.7,
+        "temperature": 0.6,
         "repetition_penalty": 1.2,
         "top_k": 50,
         "top_p": 0.9,
@@ -68,9 +68,8 @@ HuggingFaceLocalChatGenerator = HuggingFaceLocalChatGenerator(
 
 # System message and templates
 system_message = ChatMessage.from_system(
-    "You are a helpful AI assistant using provided supporting documents and conversation history to assist humans."
-    "Note that supporting documents are not part of the conversation. If question can't be answered from supporting documents, say so.")
-
+    "You are a helpful AI assistant using provided supporting documents and conversation history and your information to assist humans.")
+#    "Note that supporting documents are not part of the conversation. If question can't be answered from supporting documents, say so."
 @component
 class ListJoiner:
     def __init__(self, _type: Any):
@@ -120,6 +119,7 @@ def delete_chat_history_index():
     except requests.exceptions.RequestException as e:
         print("Error deleting chat history index:", e)
 
+
 def fetch_chat_history(conversation_id):
     """
     Fetch the latest question and answer from Elasticsearch.
@@ -141,6 +141,34 @@ def fetch_chat_history(conversation_id):
     except requests.exceptions.RequestException as e:
         print("Error fetching chat history:", e)
         return None
+
+# def fetch_chat_history(conversation_id):
+#     """
+#     Fetch the chat history for a given conversation ID from Elasticsearch.
+#     """
+#     # Elasticsearch index for chat history
+#     index_name = "chat_history"
+#     url = f"https://localhost:9200/{index_name}/_doc/{conversation_id}"
+#     auth = ("elastic", "B1+Zz5*6CtgThyeTZive")
+#     headers = {"Content-Type": "application/json"}
+#
+#     try:
+#         # Make a GET request to fetch the document
+#         response = requests.get(url, auth=auth, headers=headers, verify=False)
+#         response.raise_for_status()  # Raise an exception for HTTP errors (e.g., 404)
+#         return response.json()["_source"]  # Return the document's source data
+#     except requests.exceptions.HTTPError as e:
+#         if response.status_code == 404:
+#             # Document not found (404), return None to indicate no history exists
+#             return None
+#         else:
+#             # Log other HTTP errors
+#             print(f"Error fetching chat history: {e}")
+#             return None
+#     except requests.exceptions.RequestException as e:
+#         # Log any other request-related errors
+#         print(f"Error fetching chat history: {e}")
+#         return None
 
 def fetch_data_from_api():
     try:
@@ -230,13 +258,15 @@ def save_chat_history(conversation_id, user_message, assistant_response):
     existing_interaction = fetch_chat_history(conversation_id)
 
     if existing_interaction and 'history' in existing_interaction:
+        # Append new messages to existing history
         updated_history = (
             f"{existing_interaction['history']}\n"
-            f"Human: {user_message}\n"
-            f"Assistant: {assistant_response}"
+            f"{user_message}\n"
+            f"{assistant_response}"
         )
     else:
-        updated_history = f"Human: {user_message}\nAssistant: {assistant_response}"
+        # First interaction
+        updated_history = f"{user_message}\n{assistant_response}"
 
     # Update document with the complete history
     updated_document = {
@@ -292,9 +322,10 @@ def process_question(question, conversation_id):
         )
 
         response_text = res['llm']['replies'][0].content.strip()
-
-        answer = extract_answer(response_text)
-        save_chat_history(conversation_id, question, answer)
+        # print(f"full response output print: {response_text}\nfinished")
+        answer=f"You as ai last answer:\n{extract_answer(response_text)}"
+        user_message=f"User last message:\n{question}"
+        save_chat_history(conversation_id= conversation_id,user_message= user_message,assistant_response= answer)
         return response_text
 
     except KeyError as e:
@@ -379,7 +410,7 @@ def main():
             # Skip empty inputs
             if not question:
                 continue
-            if question.lower() in ["clear history"]:
+            if question.lower() in ["clear"]:
                 # Clear chat history index
                 clear_chat_history_index()
                 continue
