@@ -19,16 +19,16 @@ logging.basicConfig(level=logging.INFO)
 #Initialize Elasticsearch Document Store
 document_store = ElasticsearchDocumentStore(
     hosts="https://localhost:9200/",
-    basic_auth=("elastic", "B1+Zz5*6CtgThyeTZive"),
-    ca_certs="/home/LLMBot.Haystack/elastic/elasticsearch-8.16.1/config/certs/http_ca.crt",
+    basic_auth=("elastic", "HPGqRF6dHVRey9TlQN7*"),
+    ca_certs="E:/Workarea/ai-chatbots/Haystack.llama.cpp/elasticsearch-8.16.1-windows-x86_64/elasticsearch-8.16.1/config/certs/http_ca.crt",
     index="document",
     verify_certs=False
 )
 
 chat_history_document_store = ElasticsearchDocumentStore(
     hosts="https://localhost:9200/",
-    basic_auth=("elastic", "B1+Zz5*6CtgThyeTZive"),
-    ca_certs="/home/LLMBot.Haystack/elastic/elasticsearch-8.16.1/config/certs/http_ca.crt",
+    basic_auth=("elastic", "HPGqRF6dHVRey9TlQN7*"),
+    ca_certs="E:/Workarea/ai-chatbots/Haystack.llama.cpp/elasticsearch-8.16.1-windows-x86_64/elasticsearch-8.16.1/config/certs/http_ca.crt",
     index="chat_history",
     verify_certs=False
 )
@@ -45,7 +45,7 @@ chat_history_embedder = SentenceTransformersDocumentEmbedder(model=model, progre
 chat_history_embedder.warm_up()
 
 # Initialize model
-local_model_path = "/home/DSTV3.LLMEmbedding.Ai.Api/AVA-Llama-3-V2/"
+local_model_path = "E:/Workarea/ai-chatbots/Haystack.llama.cpp/models/AVA-Llama-3-V2"
 #local_model_path = "E:/Workarea/ai-chatbots/Haystack.llama.cpp/models/AVA-Llama-3-V2"
 
 HuggingFaceLocalChatGenerator = HuggingFaceLocalChatGenerator(
@@ -68,7 +68,7 @@ HuggingFaceLocalChatGenerator = HuggingFaceLocalChatGenerator(
 
 # System message and templates
 system_message = ChatMessage.from_system(
-    "You are a helpful AI assistant using provided supporting documents and conversation history and your information to assist humans.")
+    "You are a helpful AI assistant using provided supporting documents, conversation history, and your information to assist humans. Always respond in the same language as the user's input.")
 #    "Note that supporting documents are not part of the conversation. If question can't be answered from supporting documents, say so."
 @component
 class ListJoiner:
@@ -103,7 +103,7 @@ def delete_chat_history_index():
     # Elasticsearch index for chat history
     index_name = "chat_history"
     url = f"https://localhost:9200/{index_name}"
-    auth = ("elastic", "B1+Zz5*6CtgThyeTZive")
+    auth = ("elastic", "HPGqRF6dHVRey9TlQN7*")
     headers = {"Content-Type": "application/json"}
 
     try:
@@ -127,7 +127,7 @@ def fetch_chat_history(conversation_id):
     # Elasticsearch index for chat history
     index_name = "chat_history"
     url = f"https://localhost:9200/{index_name}/_doc/{conversation_id}"
-    auth = ("elastic", "B1+Zz5*6CtgThyeTZive")
+    auth = ("elastic", "HPGqRF6dHVRey9TlQN7*")
     headers = {"Content-Type": "application/json"}
 
     try:
@@ -207,7 +207,7 @@ def fetch_documents_from_elasticsearch(query):
     """
     index_name = "document"
     url = f"https://localhost:9200/{index_name}/_search"
-    auth = ("elastic", "B1+Zz5*6CtgThyeTZive")
+    auth = ("elastic", "HPGqRF6dHVRey9TlQN7*")
     headers = {"Content-Type": "application/json"}
 
     # Search query matching the exact document structure
@@ -251,7 +251,7 @@ def save_chat_history(conversation_id, user_message, assistant_response):
     """
     index_name = "chat_history"
     url = f"https://localhost:9200/{index_name}/_doc/{conversation_id}"
-    auth = ("elastic", "B1+Zz5*6CtgThyeTZive")
+    auth = ("elastic", "HPGqRF6dHVRey9TlQN7*")
     headers = {"Content-Type": "application/json"}
 
     # Fetch the existing interaction
@@ -372,7 +372,7 @@ def clear_chat_history_index():
         # Elasticsearch index for chat history
         index_name = "chat_history"
         url = f"https://localhost:9200/{index_name}/_delete_by_query"
-        auth = ("elastic", "B1+Zz5*6CtgThyeTZive")
+        auth = ("elastic", "HPGqRF6dHVRey9TlQN7*")
         headers = {"Content-Type": "application/json"}
 
         # Delete all documents in the index using a match_all query
@@ -434,4 +434,3 @@ def main():
 if __name__ == "__main__":
     delete_chat_history_index()
     main()
-
