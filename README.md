@@ -1,2 +1,3 @@
 # QR
-QR persian English
+QR persian English with haystack version 2
+
