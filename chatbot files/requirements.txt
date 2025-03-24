@@ -1,0 +1,17 @@
+flask
+haystack-ai
+torch
+torchvision
+torchaudio
+transformers
+sentence-transformers
+elasticsearch
+requests
+python-dotenv
+urllib3
+numpy
+tqdm
+elasticsearch-haystack
+accelerate
+bitsandbytes
+
